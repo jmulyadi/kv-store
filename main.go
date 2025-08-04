@@ -10,6 +10,8 @@ import (
 	pb "github.com/jmulyadi/kv-store/proto"
 
 	"google.golang.org/grpc"
+
+	"google.golang.org/grpc/reflection"
 )
 
 type server struct {
@@ -42,6 +44,8 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterKVStoreServer(grpcServer, &server{})
+
+	reflection.Register(grpcServer)
 
 	fmt.Println("KV Store gRPC server listening on :50051")
 	if err := grpcServer.Serve(lis); err != nil {

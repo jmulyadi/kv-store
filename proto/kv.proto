@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package kv;
 
+option go_package = "github.com/jmulyadi/kv-store/proto";
+
 service KVStore {
   rpc Put (PutRequest) returns (PutResponse);
   rpc Get (GetRequest) returns (GetResponse);
