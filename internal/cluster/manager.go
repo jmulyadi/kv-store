@@ -54,3 +54,33 @@ func (cm *ClusterManager) GetClient(addr string) pb.KVStoreClient {
 	defer cm.mu.RUnlock()
 	return cm.clients[addr]
 }
+
+// fault tolerance
+func (cm *ClusterManager) GetReplicaNodes(key string, rf int) []string {
+	replicas := []string{}
+	startNode := cm.HashRing.Get(key)
+	sortedNodes := cm.HashRing.SortedNodes()
+
+	idx := -1
+	for i, node := range sortedNodes {
+		if node == startNode {
+			idx = i
+			break
+		}
+	}
+
+	if idx == -1 {
+		return replicas
+	}
+
+	seen := make(map[string]bool)
+	for i := 0; len(replicas) < rf && i < len(sortedNodes); i++ {
+		node := sortedNodes[(idx+i)%len(sortedNodes)]
+		if !seen[node] {
+			replicas = append(replicas, node)
+			seen[node] = true
+		}
+	}
+
+	return replicas
+}

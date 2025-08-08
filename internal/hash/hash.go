@@ -41,3 +41,16 @@ func (h *HashRing) Get(key string) string {
 	}
 	return h.hashMap[h.keys[idx]]
 }
+
+func (h *HashRing) SortedNodes() []string {
+	seen := make(map[string]bool)
+	nodes := []string{}
+	for _, hash := range h.keys {
+		node := h.hashMap[hash]
+		if !seen[node] {
+			seen[node] = true
+			nodes = append(nodes, node)
+		}
+	}
+	return nodes
+}
