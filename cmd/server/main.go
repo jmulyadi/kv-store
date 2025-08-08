@@ -22,45 +22,52 @@ type server struct {
 
 func (s *server) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse, error) {
 	target := s.cluster.GetResponsibleNode(req.GetKey())
+
 	if target != s.cluster.SelfAddress {
+		log.Printf("[Put] Key: %s routed to node: %s (forwarding from %s)", req.GetKey(), target, s.cluster.SelfAddress)
 		client := s.cluster.GetClient(target)
-		//forwarding to correct node if it's not this node
 		return client.Put(ctx, req)
 	}
-	log.Printf("[Put] Key: %s, Value: %s", req.GetKey(), req.GetValue())
+
+	log.Printf("[Put] Handling key %s locally on node %s, Value: %s", req.GetKey(), s.cluster.SelfAddress, req.GetValue())
 	s.store.Put(req.GetKey(), req.GetValue())
-	log.Printf("[Put] Stored key %q successfully", req.GetKey())
+	log.Printf("[Put] Stored key %q successfully on node %s", req.GetKey(), s.cluster.SelfAddress)
+
 	return &pb.PutResponse{Message: "Stored successfully"}, nil
 }
 
 func (s *server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
-
 	target := s.cluster.GetResponsibleNode(req.GetKey())
+
 	if target != s.cluster.SelfAddress {
+		log.Printf("[Get] Key: %s routed to node: %s (forwarding from %s)", req.GetKey(), target, s.cluster.SelfAddress)
 		client := s.cluster.GetClient(target)
-		//forwarding to correct node if it's not this node
 		return client.Get(ctx, req)
 	}
-	log.Printf("[Get] Key: %s", req.GetKey())
+
+	log.Printf("[Get] Handling key %s locally on node %s", req.GetKey(), s.cluster.SelfAddress)
 	value, found := s.store.Get(req.GetKey())
 	if found {
-		log.Printf("[Get] Found key %q with value %q", req.GetKey(), value)
+		log.Printf("[Get] Found key %q with value %q on node %s", req.GetKey(), value, s.cluster.SelfAddress)
 	} else {
-		log.Printf("[Get] Key %q not found", req.GetKey())
+		log.Printf("[Get] Key %q not found on node %s", req.GetKey(), s.cluster.SelfAddress)
 	}
 	return &pb.GetResponse{Value: value, Found: found}, nil
 }
 
 func (s *server) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
 	target := s.cluster.GetResponsibleNode(req.GetKey())
+
 	if target != s.cluster.SelfAddress {
+		log.Printf("[Delete] Key: %s routed to node: %s (forwarding from %s)", req.GetKey(), target, s.cluster.SelfAddress)
 		client := s.cluster.GetClient(target)
-		//forwarding to correct node if it's not this node
 		return client.Delete(ctx, req)
 	}
-	log.Printf("[Delete] Key: %s", req.GetKey())
+
+	log.Printf("[Delete] Handling key %s locally on node %s", req.GetKey(), s.cluster.SelfAddress)
 	s.store.Delete(req.GetKey())
-	log.Printf("[Delete] Deleted key %q successfully", req.GetKey())
+	log.Printf("[Delete] Deleted key %q successfully on node %s", req.GetKey(), s.cluster.SelfAddress)
+
 	return &pb.DeleteResponse{Message: "Deleted successfully"}, nil
 }
 
@@ -78,7 +85,14 @@ func main() {
 	cm := cluster.NewClusterManager(*selfAddr, allNodes, 100)
 	store := kvstore.NewKVStore()
 
-	lis, err := net.Listen("tcp", *selfAddr)
+	hostPort := *selfAddr
+	_, port, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		log.Fatalf("invalid address: %v", err)
+	}
+	listenAddr := "0.0.0.0:" + port
+
+	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -91,7 +105,7 @@ func main() {
 	//registers the server
 	reflection.Register(grpcServer)
 
-	log.Printf("KV Store gRPC server listening on %s", *selfAddr)
+	log.Printf("KV Store gRPC server listening on %s (listening on %s)", *selfAddr, listenAddr)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
