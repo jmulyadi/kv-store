@@ -88,7 +88,7 @@ func main() {
 		store:   store,
 		cluster: cm,
 	})
-
+	//registers the server
 	reflection.Register(grpcServer)
 
 	log.Printf("KV Store gRPC server listening on %s", *selfAddr)
