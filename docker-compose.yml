@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  node1:
+    build:
+      context: ./kv-store
+    command: ["-addr", "node1:50051"]
+    ports:
+      - "50051:50051"
+    networks:
+      - kvnet
+
+  node2:
+    build:
+      context: ./kv-store
+    command: ["-addr", "node2:50052"]
+    ports:
+      - "50052:50052"
+    networks:
+      - kvnet
+
+  node3:
+    build:
+      context: ./kv-store
+    command: ["-addr", "node3:50053"]
+    ports:
+      - "50053:50053"
+    networks:
+      - kvnet
+
+networks:
+  kvnet:
+    driver: bridge
