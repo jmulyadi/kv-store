@@ -4,7 +4,7 @@ services:
   node1:
     build:
       context: ./kv-store
-    command: ["-addr", "node1:50051"]
+    command: ["./kvserver", "-addr", "node1:50051"]
     ports:
       - "50051:50051"
     networks:
@@ -13,7 +13,7 @@ services:
   node2:
     build:
       context: ./kv-store
-    command: ["-addr", "node2:50052"]
+    command: ["./kvserver", "-addr", "node2:50052"]
     ports:
       - "50052:50052"
     networks:
@@ -22,9 +22,22 @@ services:
   node3:
     build:
       context: ./kv-store
-    command: ["-addr", "node3:50053"]
+    command: ["./kvserver", "-addr", "node3:50053"]
     ports:
       - "50053:50053"
+    networks:
+      - kvnet
+
+  test:
+    image: golang:1.24
+    working_dir: /app
+    volumes:
+      - ./kv-store:/app
+    command: ["go", "run", "test/test_fault_tolerance.go"]
+    depends_on:
+      - node1
+      - node2
+      - node3
     networks:
       - kvnet
 
